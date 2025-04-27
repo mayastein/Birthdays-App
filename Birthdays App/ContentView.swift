@@ -13,23 +13,36 @@ struct ContentView: View {
     @Environment(\.modelContext) private var context
     @State private var newFriendName = ""
     @State private var newFriendBirthday=Date.now
+    @State private var selectedFriend:Friend?
     var body: some View {
         NavigationStack{
-            List(friends){ friend in
-                HStack{
-                    Text(friend.name)
-                    Spacer()
-                    Text(friend.birthday, format: .dateTime.month(.wide).day().year())
+            List{
+                ForEach(friends){ friend in
+                    HStack{
+                        HStack{
+                            Text(friend.name)
+                            Spacer()
+                            Text(friend.birthday, format: .dateTime.month(.wide).day().year())
+                        }.onTapGesture {
+                            selectedFriend=friend
+                        }
+                    }
                 }
+                .onDelete(perform: deleteFriend)
             }
             .navigationTitle("Birthdays")
+            .sheet(item:$selectedFriend){ friend in
+                NavigationStack{
+                    EditFriendView(friend: friend)
+                }
+            }
             .safeAreaInset(edge:.bottom) {
                 VStack(alignment:.center, spacing:20){
                     Text("New Birthday").font(.headline)
                     DatePicker(selection: $newFriendBirthday, in: Date.distantPast...Date.now, displayedComponents: .date) {
-                               TextField("Name", text: $newFriendName)
-                                   .textFieldStyle(.roundedBorder)
-                           }
+                        TextField("Name", text: $newFriendName)
+                            .textFieldStyle(.roundedBorder)
+                    }
                     Button("Save"){
                         let newFriend=Friend(theName: newFriendName, theBirthday: newFriendBirthday)
                         context.insert(newFriend)
@@ -39,14 +52,21 @@ struct ContentView: View {
                     .bold()
                     
                 }
+                
                 .padding()
                 .background(.bar)
-               
+                
             }
+        }
+        
+    }
+    func deleteFriend(at offsets:IndexSet){
+        for index in offsets{
+            let friendToDelete=friends[index]
+            context.delete(friendToDelete)
         }
     }
 }
-
 #Preview {
     ContentView().modelContainer(for: Friend.self, inMemory: true)
 }
